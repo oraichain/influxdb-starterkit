@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Influxdb sample</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+      const chart = LightweightCharts.createChart(document.body, { width: window.outerWidth, height: window.outerHeight });
+      const series = chart.addAreaSeries();
+      const tf = new URL(location.href).searchParams.get('tf') || '4h';
+      fetch(`/api/${tf}`)
+        .then((res) => res.json())
+        .then((data) => {
+          series.setData(data);
+        });
+    </script>
+  </body>
+</html>
