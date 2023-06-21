@@ -10,7 +10,7 @@
   <body>
     <script type="text/javascript">
       const chart = LightweightCharts.createChart(document.body, { width: window.outerWidth, height: window.outerHeight });
-      const series = chart.addAreaSeries();
+      const series = chart.addCandlestickSeries();
       const tf = new URL(location.href).searchParams.get('tf') || '4h';
       fetch(`/api/${tf}`)
         .then((res) => res.json())

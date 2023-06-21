@@ -9,18 +9,26 @@ const queryApi = new InfluxDB({ url, token }).getQueryApi(org);
 const getOHLCV = (exchange, symbol, tf) =>
   new Promise((resolve, reject) => {
     const data = [];
-    const fluxQuery = `            
-      from(bucket:"${exchange}")
-        |> range(start:0)                
-        |> filter(fn: (r) => r._measurement == "ohlcv" and r._field == "close" and r.symbol == "${symbol}")                        
-        |> aggregateWindow(every: ${tf}, fn: mean, createEmpty: false)     
-        |> map(fn: (r) => ({time: uint(v: r._time), value: r._value}))           
-        |> limit(n: 100)        
+    const fluxQuery = `filterTable = (field, fn) => from(bucket:"${exchange}")
+    |> range(start:0)              
+    |> filter(fn: (r) => r._measurement == "ohlcv" and r._field == field and r.symbol == "${symbol}")                  
+    |> aggregateWindow(every: ${tf}, createEmpty: false, fn: fn)                              
+
+open = filterTable(field: "open", fn: first)             
+close = filterTable(field: "close", fn: last)                   
+low = filterTable(field: "low", fn: min)    
+high = filterTable(field: "high", fn: max)   
+volume = filterTable(field: "volume", fn: sum)
+
+union(tables: [open, close, low, high, volume])
+    |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")    
+    |> map(fn: (r) => ({r with time: uint(v: r._time) / uint(v: 1000000000)})) 
+    |> drop(columns: ["_measurement", "symbol", "tf", "_time", "_start", "_stop"])               
         `;
     queryApi.queryRows(fluxQuery, {
       next(row, tableMeta) {
-        const { time, value } = tableMeta.toObject(row);
-        data.push({ time, value });
+        const { result, table, ...item } = tableMeta.toObject(row);
+        data.push(item);
       },
       error(err) {
         reject(err);
