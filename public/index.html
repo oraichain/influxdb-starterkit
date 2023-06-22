@@ -9,7 +9,7 @@
   </head>
   <body>
     <script type="text/javascript">
-      const chart = LightweightCharts.createChart(document.body, { width: window.outerWidth, height: window.outerHeight });
+      const chart = LightweightCharts.createChart(document.body, { width: window.outerWidth, height: 500 });
       const series = chart.addCandlestickSeries();
       const tf = new URL(location.href).searchParams.get('tf') || '4h';
       fetch(`/api/${tf}`)

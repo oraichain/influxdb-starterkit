@@ -6,39 +6,26 @@ const port = process.env.PORT || 3000;
 const app = express();
 const queryApi = new InfluxDB({ url, token }).getQueryApi(org);
 
-const getOHLCV = (exchange, symbol, tf, limit = 100) =>
-  new Promise((resolve, reject) => {
-    const data = [];
-    const fluxQuery = `filterTable = (field, fn) => from(bucket:"${exchange}")
+const getOHLCV = async (exchange, symbol, tf, limit = 100) => {
+  const fluxQuery = `
+  filterTable = (field, fn) => from(bucket:"${exchange}")
     |> range(start:0)              
-    |> filter(fn: (r) => r._measurement == "ohlcv" and r._field == field and r.symbol == "${symbol}")                  
+    |> filter(fn: (r) => r._field == field and r.symbol == "${symbol}")                  
     |> aggregateWindow(every: ${tf}, createEmpty: false, fn: fn)
     |> limit(n: ${limit})                              
 
-open = filterTable(field: "open", fn: first)             
-close = filterTable(field: "close", fn: last)                   
-low = filterTable(field: "low", fn: min)    
-high = filterTable(field: "high", fn: max)   
-volume = filterTable(field: "volume", fn: sum)
-
-union(tables: [open, close, low, high, volume])
-    |> map(fn: (r) => ({r with time: uint(v: r._time) / uint(v: 1000000000)})) 
-    |> drop(columns: ["_measurement", "symbol", "tf", "_time", "_start", "_stop"])
-    |> pivot(rowKey: ["time"], columnKey: ["_field"], valueColumn: "_value")                           
-        `;
-    queryApi.queryRows(fluxQuery, {
-      next(row, tableMeta) {
-        const { result, table, ...item } = tableMeta.toObject(row);
-        data.push(item);
-      },
-      error(err) {
-        reject(err);
-      },
-      complete() {
-        resolve(data);
-      }
-    });
-  });
+  union(tables: [
+    filterTable(field: "open", fn: first), 
+    filterTable(field: "close", fn: last), 
+    filterTable(field: "low", fn: min), 
+    filterTable(field: "high", fn: max), 
+    filterTable(field: "volume", fn: sum)
+  ])
+    |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")    
+`;
+  const data = await queryApi.collectRows(fluxQuery);
+  return data.map(({ _time, open, close, low, high, volume }) => ({ time: Math.round(new Date(_time).getTime() / 1000), open, close, low, high, volume }));
+};
 
 app.use(express.static('public'));
 
