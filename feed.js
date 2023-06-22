@@ -54,7 +54,7 @@ const fetchOHLCV = async (exchangeName, symbol, tf, since = 0, writeApi) => {
         if (e.indexOf(undefined) !== -1) continue;
         const [ts, open, high, low, close, volume] = e;
         lastTs = new Date(ts);
-        const p = new Point(`ohlcv`).tag('symbol', symbol).tag('tf', tf).floatField('open', open).floatField('high', high).floatField('low', low).floatField('close', close).floatField('volume', volume).timestamp(lastTs);
+        const p = new Point(symbol).floatField('open', open).floatField('high', high).floatField('low', low).floatField('close', close).floatField('volume', volume).timestamp(lastTs);
         writeApi.writePoint(p);
       }
       logger.info(`Successful fetch from ${since} to ${lastTs}`);
