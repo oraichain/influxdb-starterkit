@@ -6,13 +6,14 @@ const port = process.env.PORT || 3000;
 const app = express();
 const queryApi = new InfluxDB({ url, token }).getQueryApi(org);
 
-const getOHLCV = (exchange, symbol, tf) =>
+const getOHLCV = (exchange, symbol, tf, limit = 100) =>
   new Promise((resolve, reject) => {
     const data = [];
     const fluxQuery = `filterTable = (field, fn) => from(bucket:"${exchange}")
     |> range(start:0)              
     |> filter(fn: (r) => r._measurement == "ohlcv" and r._field == field and r.symbol == "${symbol}")                  
-    |> aggregateWindow(every: ${tf}, createEmpty: false, fn: fn)                              
+    |> aggregateWindow(every: ${tf}, createEmpty: false, fn: fn)
+    |> limit(n: ${limit})                              
 
 open = filterTable(field: "open", fn: first)             
 close = filterTable(field: "close", fn: last)                   
@@ -21,9 +22,9 @@ high = filterTable(field: "high", fn: max)
 volume = filterTable(field: "volume", fn: sum)
 
 union(tables: [open, close, low, high, volume])
-    |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")    
     |> map(fn: (r) => ({r with time: uint(v: r._time) / uint(v: 1000000000)})) 
-    |> drop(columns: ["_measurement", "symbol", "tf", "_time", "_start", "_stop"])               
+    |> drop(columns: ["_measurement", "symbol", "tf", "_time", "_start", "_stop"])
+    |> pivot(rowKey: ["time"], columnKey: ["_field"], valueColumn: "_value")                           
         `;
     queryApi.queryRows(fluxQuery, {
       next(row, tableMeta) {
