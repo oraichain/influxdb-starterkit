@@ -8,18 +8,18 @@ const queryApi = new InfluxDB({ url, token }).getQueryApi(org);
 
 const getOHLCV = async (exchange, symbol, tf, limit = 100) => {
   const fluxQuery = `
-  filterTable = (field, fn) => from(bucket:"${exchange}")
+  extract = (field, fn) => from(bucket:"${exchange}")
     |> range(start:0)              
     |> filter(fn: (r) => r._field == field and r.symbol == "${symbol}")                  
     |> aggregateWindow(every: ${tf}, createEmpty: false, fn: fn)
     |> limit(n: ${limit})                              
 
   union(tables: [
-    filterTable(field: "open", fn: first), 
-    filterTable(field: "close", fn: last), 
-    filterTable(field: "low", fn: min), 
-    filterTable(field: "high", fn: max), 
-    filterTable(field: "volume", fn: sum)
+    extract(field: "open", fn: first), 
+    extract(field: "close", fn: last), 
+    extract(field: "low", fn: min), 
+    extract(field: "high", fn: max), 
+    extract(field: "volume", fn: sum)
   ])
     |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")    
 `;
