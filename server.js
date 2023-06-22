@@ -24,7 +24,7 @@ const getOHLCV = async (exchange, symbol, tf, limit = 100) => {
     |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")    
 `;
   const data = await queryApi.collectRows(fluxQuery);
-  return data.map(({ _time, open, close, low, high, volume }) => ({ time: Math.round(new Date(_time).getTime() / 1000), open, close, low, high, volume }));
+  return data.map(({ _time, open, close, low, high, volume }) => ({ time: new Date(_time).getTime() / 1000, open, close, low, high, volume }));
 };
 
 app.use(express.static('public'));
