@@ -54,6 +54,7 @@ const fetchOHLCV = async (exchangeName, symbol, tf, since = 0, writeApi) => {
         if (e.indexOf(undefined) !== -1) continue;
         const [ts, open, high, low, close, volume] = e;
         lastTs = new Date(ts);
+        // TODO
         const p = new Point(symbol).floatField('open', open).floatField('high', high).floatField('low', low).floatField('close', close).floatField('volume', volume).timestamp(lastTs);
         writeApi.writePoint(p);
       }
